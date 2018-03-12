@@ -1,21 +1,20 @@
 <template>
   <q-page class="flex items-start column full-width ">
     <div class="searchbar full-width row q-pa-md">
-      <div class="col-1" />
       <q-select
         class="col-2"
+        v-model="collection"
+        inverted
+        radio
+        :options="collections"
+        default="KW"
+      />
+      <q-select
+        class="col-2 q-ml-sm"
         v-model="key"
         inverted
         radio
         :options="keyOptions"
-        default="KW"
-      />
-      <q-select
-        class="col-1 q-ml-sm"
-        v-model="batch"
-        inverted
-        radio
-        :options="batchOptions"
         default="KW"
       />
       <q-input
@@ -52,7 +51,6 @@
         icon="report"
         flat
       />
-      <div class="col-1" />
     </div>
     <div class="progress full-width">
       <q-progress
@@ -173,6 +171,13 @@ export default {
         accessid: this.$config.get('polarisId'),
         key: this.$config.get('polarisKey'),
       }),
+      collection: '*',
+      collections: [
+        {
+          label: 'All',
+          value: '*',
+        },
+      ],
       batchOptions: [
         {
           label: 'Fast',
@@ -203,6 +208,10 @@ export default {
           value: 'KW',
         },
         {
+          label: 'Record Set',
+          value: 'BRS',
+        },
+        {
           label: 'Series',
           value: 'SE',
         },
@@ -217,7 +226,22 @@ export default {
       ],
     };
   },
+  created() {
+    this.api.collectionsGet()
+      .then((r) => {
+        const col = r.data.CollectionsRows;
+        col.forEach((key) => {
+          this.collections.push({
+            label: key.Name,
+            value: key.ID,
+          });
+        });
+      });
+  },
   methods: {
+    colUpdate(r) {
+      console.log(r);
+    },
     // React when Wrangle button is clicked
     wrangle() {
       // Report displays the current state of operations for the user
@@ -255,8 +279,11 @@ export default {
     getPacResults(offset = 1) {
       // If process was aborted, stop execution
       if (!this.status) return;
+
       // Perform the search
-      this.api.bibSearchKW(this.term, this.key, offset, this.batch)
+      const querystring = `${this.key}=${this.term} AND (COL=${this.collection})`;
+      console.log(querystring);
+      this.api.bibSearch(querystring, offset, this.batch)
         // Wait for response from Polaris
         .then((r) => {
           // User aborted
@@ -422,6 +449,7 @@ export default {
     confirmByISBN(r, index, title, format) {
       if (!this.status) return;
       // Set found # for the format
+      if (format === 'u') console.log(r);
       this.found[index].titles[title][format] = r.data.TotalRecordsFound;
       ['p', 'e', 'a', 'u'].forEach((type) => {
         let count = 0;
