@@ -48,28 +48,15 @@
         </q-item>
         <q-item-separator />
 
-        <q-item
-          :class="router.history.current.path == '/' ? 'active' : ''"
-          @click.native="router.push('/')"
-        >
-          <q-item-side icon="home" />
-          <q-item-main label="Home" sublabel="Back to where it all started." />
-        </q-item>
-        <q-item
-          :class="router.history.current.path == '/series-wrangler' ? 'active' : ''"
-          @click.native="router.push('/series-wrangler')"
-        >
-          <q-item-side icon="more" />
-          <q-item-main label="Series Wrangler" sublabel="Find series missing items." />
-        </q-item>
-        <q-item
-          :class="router.history.current.path == '/nyt-wrangler' ? 'active' : ''"
-          @click.native="router.push('/nyt-wrangler')"
-        >
-          <q-item-side icon="star" />
-          <q-item-main label="NYT Wrangler"
-            sublabel="Find missing bestsellers." />
-        </q-item>
+        <menu-item name="Home"
+          path="" icon="home" desc="Back to where it all started." />
+        <menu-item name="Series Wrangler"
+          path="series-wrangler" icon="more" desc="Find series missing items." />
+        <menu-item name="NYT Wrangler"
+          path="nyt-wrangler" icon="star" desc="Find missing bestsellers." />
+        <menu-item name="API Wrangler"
+          path="api-wrangler" icon="code" desc="Test queries to the API." />
+
         <q-item-separator />
         <q-item
           @click.native="openURL('http://quasar-framework.org')"
@@ -77,13 +64,8 @@
           <q-item-side icon="school" />
           <q-item-main label="Help" sublabel="How does this even work??" />
         </q-item>
-        <q-item
-          :class="router.history.current.path == '/config' ? 'active' : ''"
-          @click.native="router.push('/config')"
-        >
-          <q-item-side icon="settings" />
-          <q-item-main label="Config" sublabel="It's nice to have control." />
-        </q-item>
+        <menu-item name="Config"
+          path="config" icon="settings" desc="Configure... things." />
         <q-item-separator />
         <q-item @click.native="leftDrawerOpen = !leftDrawerOpen">
           <q-item-side icon="close" />
@@ -100,9 +82,13 @@
 
 <script>
 import { openURL } from 'quasar';
+import menuItem from './../components/menu-item.vue';
 
 export default {
   name: 'LayoutDefault',
+  components: {
+    menuItem,
+  },
   data() {
     return {
       router: this.$router,

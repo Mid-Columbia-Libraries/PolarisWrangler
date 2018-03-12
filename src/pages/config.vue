@@ -239,13 +239,17 @@ export default {
       this.nvLoading = true;
       this.nvStatusMsg = '';
       this.nvStatus = false;
-      const papi = this.$jsPAPI({
-        server: this.$config.get('nvUrl'),
-        accessid: this.$config.get('nvId'),
-        key: this.$config.get('nvKey'),
-      });
-      papi.limitFiltersGet()
+      const url = 'https://novselect.ebscohost.com/Data/ContentByQuery';
+      const attr = {
+        profile: this.$config.get('nvProfile'),
+        password: this.$config.get('nvPassword'),
+        siteToken: null,
+        isbn: '9781612130286',
+        clientIdentifier: 'test',
+      };
+      axios.get(url, { params: attr })
         .then((r) => {
+          console.log(r);
           if (r.status === 200) {
             this.nvLoading = false;
             this.nvStatus = true;

@@ -78,6 +78,11 @@ module.exports = function (ctx) {
         'QField',
         'QSelect',
         'QProgress',
+        'QTable',
+        'QTh',
+        'QTr',
+        'QTd',
+        'QTableColumns',
       ],
       directives: [
         'Ripple'

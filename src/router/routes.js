@@ -32,6 +32,14 @@ export default [
     ],
   },
 
+  {
+    path: '/api-wrangler',
+    component: () => import('layouts/default'),
+    children: [
+      { path: '', component: () => import('pages/wrangler-api') },
+    ],
+  },
+
   { // Always leave this as last one
     path: '*',
     component: () => import('pages/404'),
