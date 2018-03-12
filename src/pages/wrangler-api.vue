@@ -36,7 +36,7 @@
       />
       <div class="col-1" />
     </div>
-    <div class="bg-tertiary full-width q-ma-md q-pa-md">
+    <div class="output bg-tertiary full-width q-pa-md">
       <vue-json-pretty :data="data" />
     </div>
   </q-page>
@@ -104,4 +104,6 @@ export default {
     margin-top: -24px
     margin-bottom: 24px
     z-index: 100
+  .output span
+    font-family: 'Monaco', 'Menlo', 'Consolas', 'Bitstream Vera Sans Mono', monospace
 </style>

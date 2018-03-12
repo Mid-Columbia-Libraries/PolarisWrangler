@@ -7,7 +7,8 @@ module.exports = function (ctx) {
       'i18n',
       'axios',
       'config',
-      'jsPAPI'
+      'jsPAPI',
+      'pages',
     ],
     css: [
       'app.styl'

@@ -47,16 +47,12 @@
           </small>
         </q-item>
         <q-item-separator />
-
-        <menu-item name="Home"
-          path="" icon="home" desc="Back to where it all started." />
-        <menu-item name="Series Wrangler"
-          path="series-wrangler" icon="more" desc="Find series missing items." />
-        <menu-item name="NYT Wrangler"
-          path="nyt-wrangler" icon="star" desc="Find missing bestsellers." />
-        <menu-item name="API Wrangler"
-          path="api-wrangler" icon="code" desc="Test queries to the API." />
-
+        <menu-item v-for="page in this.$pages"
+          :name="page.name"
+          :icon="page.icon"
+          :desc="page.desc"
+          :path="page.path"
+          :key="page.id" />
         <q-item-separator />
         <q-item
           @click.native="openURL('http://quasar-framework.org')"
@@ -64,9 +60,6 @@
           <q-item-side icon="school" />
           <q-item-main label="Help" sublabel="How does this even work??" />
         </q-item>
-        <menu-item name="Config"
-          path="config" icon="settings" desc="Configure... things." />
-        <q-item-separator />
         <q-item @click.native="leftDrawerOpen = !leftDrawerOpen">
           <q-item-side icon="close" />
           <q-item-main label="Close Sidebar" sublabel="Go away, Sidebar! Shoo!" />

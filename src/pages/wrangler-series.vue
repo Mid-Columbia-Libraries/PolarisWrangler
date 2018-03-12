@@ -65,9 +65,9 @@
     <div class="status flex text-weight-bold flex-center full-width">
       {{ report }}
     </div>
-    <div class="searchresults flex flex-center full-width">
+    <div class="searchresults flex flex-center full-width q-pa-sm">
       <q-table
-        class="bg-white text-dark"
+        class="bg-white text-dark full-width"
         color="black"
         title="Results"
         :loading="status"
@@ -83,6 +83,9 @@
           <div small color="secondary">{{ props.value }}</div>
         </q-td>
         <q-td slot="body-cell-num" slot-scope="props" :props="props">
+          <div small color="secondary">{{ props.value }}</div>
+        </q-td>
+        <q-td slot="body-cell-print" slot-scope="props" :props="props">
           <div small color="secondary">{{ props.value }}</div>
         </q-td>
       </q-table>
@@ -110,6 +113,8 @@ export default {
       show: 'ms',
       batch: 100,
       store: [],
+      dispatchCount: 0,
+      pending: false,
       found: [
         {
           title: 'Lord of the Rings',
@@ -138,9 +143,29 @@ export default {
           field: 'num',
         },
         {
+          name: 'print',
+          label: 'Print',
+          field: 'p',
+        },
+        {
+          name: 'ebook',
+          label: 'eBook',
+          field: 'e',
+        },
+        {
           name: 'audio',
           label: 'Audio',
-          field: 'audio',
+          field: 'a',
+        },
+        {
+          name: 'unknown',
+          label: 'Unknown',
+          field: 'u',
+        },
+        {
+          name: 'frankenstein',
+          label: 'Frankenstein',
+          field: 'f',
         },
       ],
       api: this.$jsPAPI({
@@ -201,6 +226,7 @@ export default {
       this.store = [];
       this.done = {};
       this.found = [];
+      this.pending = true;
       // Bind context and make initial call to recursive lookup
       this.getPacResults.bind(this)(1);
     },
@@ -280,7 +306,7 @@ export default {
       // Otherwise continue to next item
       else if (i < (this.store.length - 1)) { this.nvHandler(i += 1); }
       else {
-        this.finish();
+        this.pending = false;
       }
     },
     // Gets the item from NV and parses it
@@ -309,8 +335,7 @@ export default {
             );
             this.nvHandler(i);
           } else {
-            console.log(this.found);
-            this.finish();
+            this.pending = false;
           }
         })
         .catch(() => {
@@ -320,11 +345,10 @@ export default {
     extractResults(r) {
       // If process was aborted, stop execution
       if (!this.status) return;
-
       const series = r.data.FeatureContent.SeriesInfo;
       const item = r.data.TitleInfo;
       // If this is part of a series, process it
-      if (series) {
+      if (series && series.series_titles.length > 0) {
         // Check if we have seen this series before
         const ti = series.full_title.toUpperCase();
         const au = item.author;
@@ -339,7 +363,6 @@ export default {
 
         // If this is a new series, process it
         if (!key) {
-          console.log(r.data);
           const titles = {};
           // Loop through titles in series
           Object.values(series.series_titles).forEach((title) => {
@@ -350,7 +373,7 @@ export default {
               this.done[manifestation.ISBN] = true;
               // Decide what format this manifestation is
               let format;
-              if (manifestation.MediaFormat === 'Hardback') format = 'h';
+              if (manifestation.MediaFormat === 'Hardback') format = 'p';
               else if (manifestation.MediaFormat === 'Paperback') format = 'p';
               else if (manifestation.MediaFormat === 'Ebook') format = 'e';
               else if (manifestation.MediaFormat === 'Audiobook') format = 'a';
@@ -362,41 +385,63 @@ export default {
             });
           });
 
-          // For each title in the series
-          Object.values(titles).forEach((title) => {
-            // For each format...
-            Object.values(title).forEach((format) => {
-              // For each ISBN associated with the format
-              // let isbns;
-              Object.values(format).forEach((isbn) => {
-                // Check if Polaris has it
-                // isbns = `isbns`;
-                console.log(isbn);
-              });
-            });
-          });
-
-          // Push the parses array to the finished data array
-          this.found.push({
+          // Push the parsed array to the finished data array
+          const index = this.found.push({
             title: ti,
             author: au,
             num: Object.keys(titles).length,
             titles,
-            h: 0,
-            p: 0,
-            e: 0,
-            a: 0,
-            u: 0,
+            p: {},
+            e: {},
+            a: {},
+            u: {},
+            f: {},
+          });
+          // Now we dispatch lookups to polaris with a callback to update index
+          // For each title in the series
+          Object.keys(titles).forEach((title) => {
+            // For each format...
+            Object.keys(titles[title]).forEach((format) => {
+              let isbns;
+              // For each ISBN associated with the format
+              Object.keys(titles[title][format]).forEach((isbn) => {
+                if (!isbns) isbns = `ISBN=${isbn}`;
+                else isbns = `${isbns} OR ISBN=${isbn}`;
+              });
+              const query = `search/bibs/boolean?q=${isbns}`;
+              this.dispatchCount += 1;
+              this.api.call(query)
+                .then(r2 => this.confirmByISBN(r2, index - 1, title, format));
+            });
           });
         } else {
           // console.log(`duplicate found at key: ${key}`);
         }
       }
     },
-    // Searches polaris for a given ISBN, returns num found
-    confirmISBN(isbn) {
-      console.log(isbn);
+    confirmByISBN(r, index, title, format) {
+      if (!this.status) return;
+      // Set found # for the format
+      this.found[index].titles[title][format] = r.data.TotalRecordsFound;
+      ['p', 'e', 'a', 'u'].forEach((type) => {
+        let count = 0;
+        Object.keys(this.found[index].titles).forEach((key) => {
+          if (this.found[index].titles[key][type] > 0) count += 1;
+        });
+        this.found[index][type] = `${count} / ${this.found[index].num}`;
+      });
+      let count = 0;
+      Object.keys(this.found[index].titles).forEach((key) => {
+        if (this.found[index].titles[key].p > 0) count += 1;
+        else if (this.found[index].titles[key].e > 0) count += 1;
+        else if (this.found[index].titles[key].a > 0) count += 1;
+        else if (this.found[index].titles[key].u > 0) count += 1;
+        this.found[index].f = `${count} / ${this.found[index].num}`;
+      });
+      this.dispatchCount -= 1;
+      if (!this.pending && this.dispatchCount < 1) this.finish();
     },
+
     trimISBN(str) {
       if (!str) return false;
       str = str.split(' ');

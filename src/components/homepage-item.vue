@@ -1,12 +1,11 @@
 <template>
-  <q-item v-if="name != 'separator'"
+  <q-item
   :class="router.history.current.path == '/' + path ? 'active' : ''"
   @click.native="router.push('/' + path)">
     <q-item-side :icon="icon" />
     <q-item-main :label="name"
       :sublabel="desc" />
   </q-item>
-  <q-item-separator v-else />
 </template>
 
 <script>
