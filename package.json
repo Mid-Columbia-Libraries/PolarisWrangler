@@ -1,6 +1,6 @@
 {
   "name": "polaris-wrangler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Helps you find series in a Polaris catalog missing items",
   "productName": "Polaris Wrangler",
   "cordovaId": "org.cordova.quasar.app",

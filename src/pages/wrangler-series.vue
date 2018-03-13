@@ -375,7 +375,10 @@ export default {
       // If item returned a valid ISBN, send to NoveList
       if (isbn && typeof (this.done[isbn]) === 'undefined') { this.getNvItem(i, isbn); }
       // Otherwise continue to next item
-      else if (i < (this.store.length - 1)) { this.nvHandler(i += 1); }
+      else if (i < (this.store.length)) {
+        i += 1;
+        this.nvHandler(i);
+      }
       else {
         this.pending = false;
       }
@@ -402,7 +405,7 @@ export default {
             // Update progress bar
             this.progress(
               ((i / this.store.length) * 50) + 50,
-              `Processed ${i} of ${this.store.length}...`,
+              `Processed ${i} of ${this.store.length - 1}...`,
             );
             this.nvHandler(i);
           } else {
@@ -515,6 +518,8 @@ export default {
         });
         if (frank) this.found[index].f += 1;
       });
+      this.dispatchCount -= 1;
+      if (!this.pending && this.dispatchCount === 0) this.finish();
     },
     trimISBN(str) {
       if (!str) return false;
