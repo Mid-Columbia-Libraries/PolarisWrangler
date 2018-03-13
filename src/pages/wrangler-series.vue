@@ -75,19 +75,58 @@
         row-key="name"
       >
         <q-td slot="body-cell-title" slot-scope="props" :props="props">
-          <div small color="secondary">{{ props.value }}</div>
+          <div class="text-weight-light q-body-2" >{{ props.value }}</div>
         </q-td>
         <q-td slot="body-cell-author" slot-scope="props" :props="props">
-          <div small color="secondary">{{ props.value }}</div>
+           <div class="q-body-2 text-weight-light">{{ props.value }}</div>
         </q-td>
         <q-td slot="body-cell-num" slot-scope="props" :props="props">
-          <div small color="secondary">{{ props.value }}</div>
+           <div class="q-body-2 text-weight-regular">{{ props.value }}</div>
         </q-td>
         <q-td slot="body-cell-print" slot-scope="props" :props="props">
-          <div small color="secondary">{{ props.value }}</div>
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-ebook" slot-scope="props" :props="props">
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-audio" slot-scope="props" :props="props">
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-film" slot-scope="props" :props="props">
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-audio2" slot-scope="props" :props="props">
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-frankenstein" slot-scope="props" :props="props">
+          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
+        </q-td>
+        <q-td slot="body-cell-details" slot-scope="props" :props="props">
+          <q-btn small color="primary" @click="showModal(props.row)">Details</q-btn>
         </q-td>
       </q-table>
     </div>
+    <q-modal column v-model="detailsOpen">
+      <h4 row class="q-ma-sm">{{ details.title }}</h4>
+      <div row class="q-ma-sm">
+        <q-table
+          class="full-width"
+          color="black"
+          :data="details.table"
+          :columns="detailsColumns"
+          :pagination.sync="paginationControl"
+          row-key="name"
+        >
+        </q-table>
+      </div>
+      <q-btn
+        row
+        class="full-width q-mt-sm"
+        color="primary"
+        @click="detailsOpen = false"
+        label="Close"
+      />
+    </q-modal>
   </q-page>
 </template>
 
@@ -111,8 +150,48 @@ export default {
       show: 'ms',
       batch: 100,
       store: [],
+      method: 'hybrid',
       dispatchCount: 0,
       pending: false,
+      details: {},
+      detailsOpen: false,
+      detailsColumns: [
+        {
+          name: 'title',
+          label: 'Title',
+          field: 'title',
+        },
+        {
+          name: 'print',
+          label: 'Print',
+          field: 1,
+        },
+        {
+          name: 'ebook',
+          label: 'eBook',
+          field: 36,
+        },
+        {
+          name: 'audio',
+          label: 'Audio',
+          field: 41,
+        },
+        {
+          name: 'audio2',
+          label: 'Audio2',
+          field: 52,
+        },
+        {
+          name: 'film',
+          label: 'Film',
+          field: 33,
+        },
+        {
+          name: 'unknown',
+          label: 'Unknown',
+          field: 0,
+        },
+      ],
       found: [
         {
           title: 'Lord of the Rings',
@@ -143,27 +222,41 @@ export default {
         {
           name: 'print',
           label: 'Print',
-          field: 'p',
+          field: 1,
         },
         {
           name: 'ebook',
           label: 'eBook',
-          field: 'e',
+          field: 36,
         },
         {
           name: 'audio',
           label: 'Audio',
-          field: 'a',
+          field: 41,
+        },
+        {
+          name: 'audio2',
+          label: 'Audio2',
+          field: 52,
+        },
+        {
+          name: 'film',
+          label: 'Film',
+          field: 33,
         },
         {
           name: 'unknown',
           label: 'Unknown',
-          field: 'u',
+          field: 0,
         },
         {
           name: 'frankenstein',
           label: 'Frankenstein',
           field: 'f',
+        },
+        {
+          name: 'details',
+          label: 'More Info',
         },
       ],
       api: this.$jsPAPI({
@@ -239,8 +332,23 @@ export default {
       });
   },
   methods: {
-    colUpdate(r) {
+    log(r) {
       console.log(r);
+    },
+    showModal(row) {
+      this.details = row;
+      this.details.table = [];
+      Object.keys(row.titles).forEach((r) => {
+        this.details.table.push({
+          title: r,
+          1: row.titles[r][1],
+          33: row.titles[r][33],
+          36: row.titles[r][36],
+          41: row.titles[r][41],
+          52: row.titles[r][52],
+        });
+      });
+      this.detailsOpen = true;
     },
     // React when Wrangle button is clicked
     wrangle() {
@@ -282,7 +390,6 @@ export default {
 
       // Perform the search
       const querystring = `${this.key}=${this.term} AND (COL=${this.collection})`;
-      console.log(querystring);
       this.api.bibSearch(querystring, offset, this.batch)
         // Wait for response from Polaris
         .then((r) => {
@@ -377,8 +484,8 @@ export default {
       // If this is part of a series, process it
       if (series && series.series_titles.length > 0) {
         // Check if we have seen this series before
-        const ti = series.full_title.toUpperCase();
-        const au = item.author;
+        const ti = this.clean(series.full_title);
+        const au = this.clean(item.author);
 
         let key = false;
         for (let k = 0; k < this.found.length; k += 1) {
@@ -389,56 +496,35 @@ export default {
         }
 
         // If this is a new series, process it
-        if (!key) {
+        if (key === false) {
           const titles = {};
-          // Loop through titles in series
-          Object.values(series.series_titles).forEach((title) => {
-            // Loop through manifestations of the title
-            titles[title.full_title] = {};
-            Object.values(title.manifestations).forEach((manifestation) => {
-              // Add ISBN to done list so we don't have to check it again later
-              this.done[manifestation.ISBN] = true;
-              // Decide what format this manifestation is
-              let format;
-              if (manifestation.MediaFormat === 'Hardback') format = 'p';
-              else if (manifestation.MediaFormat === 'Paperback') format = 'p';
-              else if (manifestation.MediaFormat === 'Ebook') format = 'e';
-              else if (manifestation.MediaFormat === 'Audiobook') format = 'a';
-              else format = 'u';
-              // Create format array if needed
-              if (!titles[title.full_title][format]) titles[title.full_title][format] = {};
-              // Add manifestation ISBN to array for this title
-              titles[title.full_title][format][manifestation.ISBN] = false;
-            });
-          });
-
           // Push the parsed array to the finished data array
           const index = this.found.push({
             title: ti,
             author: au,
             num: Object.keys(titles).length,
             titles,
-            p: {},
-            e: {},
-            a: {},
-            u: {},
-            f: {},
+            1: 0,
+            33: 0,
+            36: 0,
+            41: 0,
+            52: 0,
+            0: 0,
+            f: 0,
           });
-          // Now we dispatch lookups to polaris with a callback to update index
-          // For each title in the series
-          Object.keys(titles).forEach((title) => {
-            // For each format...
-            Object.keys(titles[title]).forEach((format) => {
-              let isbns;
-              // For each ISBN associated with the format
-              Object.keys(titles[title][format]).forEach((isbn) => {
-                if (!isbns) isbns = `ISBN=${isbn}`;
-                else isbns = `${isbns} OR ISBN=${isbn}`;
-              });
-              const query = `search/bibs/boolean?q=${isbns}`;
+          // Loop through titles in series
+          Object.values(series.series_titles).forEach((title) => {
+            if (this.method === 'hybrid') {
+              const itemTi = this.clean(title.main_title);
+              const query = `search/bibs/boolean?q=((AU=${au}) AND (TI=${itemTi})) OR ISBN=${title.primary_isbn}&bibsperpage=1000`;
               this.dispatchCount += 1;
               this.api.call(query)
-                .then(r2 => this.confirmByISBN(r2, index - 1, title, format));
+                .then(r2 => this.confirmByHybrid(r2, index - 1, itemTi));
+            }
+            // Loop through manifestations of the title
+            Object.values(title.manifestations).forEach((manifestation) => {
+              // Add ISBN to done list so we don't have to check it again later
+              this.done[manifestation.ISBN] = true;
             });
           });
         } else {
@@ -446,35 +532,61 @@ export default {
         }
       }
     },
-    confirmByISBN(r, index, title, format) {
+    confirmByHybrid(r, index, title) {
+      // Cancel if user aborted
       if (!this.status) return;
-      // Set found # for the format
-      if (format === 'u') console.log(r);
-      this.found[index].titles[title][format] = r.data.TotalRecordsFound;
-      ['p', 'e', 'a', 'u'].forEach((type) => {
-        let count = 0;
-        Object.keys(this.found[index].titles).forEach((key) => {
-          if (this.found[index].titles[key][type] > 0) count += 1;
+      // Init titles obj
+      if (!this.found[index].titles[title]) this.found[index].titles[title] = {};
+      // If some data found
+      if (r.data.PAPIErrorCode > 0) {
+        const rows = r.data.BibSearchRows;
+        // For each returned row
+        Object.keys(rows).forEach((k) => {
+          // get the ToM
+          const tom = rows[k].PrimaryTypeOfMaterial;
+          if (this.found[index].titles[title][tom] > 0) console.log(`Duplicate: ${title} - ${tom}`);
+          // Set ToM results # for the item to the SystemItemsTotal
+          this.found[index].titles[title][tom] = rows[k].SystemItemsTotal;
         });
-        this.found[index][type] = `${count} / ${this.found[index].num}`;
+      }
+      // Update the num of each ToM
+      this.found[index].num = Object.keys(this.found[index].titles).length;
+      // Reset counts for the title
+      this.found[index][1] = 0;
+      this.found[index][33] = 0;
+      this.found[index][36] = 0;
+      this.found[index][41] = 0;
+      this.found[index][52] = 0;
+      this.found[index][0] = 0;
+      this.found[index].f = 0;
+      // For each title in the series
+      Object.keys(this.found[index].titles).forEach((t) => {
+        let frank = false;
+        // For each ToM of the title
+        Object.keys(this.found[index].titles[t]).forEach((i) => {
+          // If title has at least 1 item of this ToM, update count for ToM
+          if (this.found[index].titles[t][i] > 0) {
+            this.found[index][i] += 1;
+            frank = true;
+          }
+          if (['1', '33', '36', '41', '52'].includes(i) === false) this.found[index][0] += 1;
+        });
+        if (frank) this.found[index].f += 1;
       });
-      let count = 0;
-      Object.keys(this.found[index].titles).forEach((key) => {
-        if (this.found[index].titles[key].p > 0) count += 1;
-        else if (this.found[index].titles[key].e > 0) count += 1;
-        else if (this.found[index].titles[key].a > 0) count += 1;
-        else if (this.found[index].titles[key].u > 0) count += 1;
-        this.found[index].f = `${count} / ${this.found[index].num}`;
-      });
-      this.dispatchCount -= 1;
-      if (!this.pending && this.dispatchCount < 1) this.finish();
     },
-
     trimISBN(str) {
       if (!str) return false;
       str = str.split(' ');
       str = str[0];
       str = str.replace(/[^0-9]/g, '');
+      return str;
+    },
+    clean(str) {
+      if (!str) return '';
+      str = str.toUpperCase();
+      str = str.replace(/AUTHOR/g, '');
+      str = str.replace(/EDITOR/g, '');
+      str = str.replace(/[^A-Z ]/g, '');
       return str;
     },
     strip(str) {
