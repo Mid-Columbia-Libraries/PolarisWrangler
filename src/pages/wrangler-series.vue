@@ -65,45 +65,34 @@
     </div>
     <div class="searchresults flex flex-center full-width q-pa-sm">
       <q-table
-        class="bg-white text-dark full-width"
+        class="bg-white text-dark full-width q-pr-lg"
         color="black"
-        title="Results"
+        dense
         :loading="status"
         :data="found"
         :columns="columns"
         :pagination.sync="paginationControl"
         row-key="name"
       >
-        <q-td slot="body-cell-title" slot-scope="props" :props="props">
-          <div class="text-weight-light q-body-2" >{{ props.value }}</div>
-        </q-td>
-        <q-td slot="body-cell-author" slot-scope="props" :props="props">
-           <div class="q-body-2 text-weight-light">{{ props.value }}</div>
-        </q-td>
-        <q-td slot="body-cell-num" slot-scope="props" :props="props">
-           <div class="q-body-2 text-weight-regular">{{ props.value }}</div>
-        </q-td>
-        <q-td slot="body-cell-print" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-ebook" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-audio" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-film" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-audio2" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-frankenstein" slot-scope="props" :props="props">
-          <div class="q-body-2 text-weight-regular">{{ props.value }}/{{ props.row.num }}</div>
-        </q-td>
-        <q-td slot="body-cell-details" slot-scope="props" :props="props">
-          <q-btn small color="primary" @click="showModal(props.row)">Details</q-btn>
-        </q-td>
+        <q-tr @click.native="showModal(props.row)"
+          v-if="
+            // Don't show series with only 1 item
+            props.row.num > 1
+            // Apply show filter
+            && (
+              show === 'all'
+              || props.row[show] / props.row.num !== 1
+            )
+          " slot="body" slot-scope="props" :props="props">
+          <q-td v-for="(col, i) in props.cols" :key="col.name" :props="props">
+            <span class="q-body-1" v-if="props.cols[i].type === 'fraction'">
+              {{ col.value }}/{{ props.row.num }}
+            </span>
+            <span class="q-body-1" v-else>
+              {{ col.value }}
+            </span>
+          </q-td>
+        </q-tr>
       </q-table>
     </div>
     <q-modal column v-model="detailsOpen">
@@ -147,7 +136,7 @@ export default {
       statusPct: 0,
       key: 'KW',
       term: 'tolkien',
-      show: 'ms',
+      show: 'all',
       batch: 100,
       store: [],
       method: 'hybrid',
@@ -155,41 +144,19 @@ export default {
       pending: false,
       details: {},
       detailsOpen: false,
+      types: {
+        0: 'Unknown',
+        1: 'Books',
+        33: 'Film',
+        36: 'eBook',
+        41: 'eAudio',
+        52: 'AudioCd',
+      },
       detailsColumns: [
         {
-          name: 'title',
+          name: 'Title',
           label: 'Title',
           field: 'title',
-        },
-        {
-          name: 'print',
-          label: 'Print',
-          field: 1,
-        },
-        {
-          name: 'ebook',
-          label: 'eBook',
-          field: 36,
-        },
-        {
-          name: 'audio',
-          label: 'Audio',
-          field: 41,
-        },
-        {
-          name: 'audio2',
-          label: 'Audio2',
-          field: 52,
-        },
-        {
-          name: 'film',
-          label: 'Film',
-          field: 33,
-        },
-        {
-          name: 'unknown',
-          label: 'Unknown',
-          field: 0,
         },
       ],
       found: [
@@ -200,7 +167,7 @@ export default {
       ],
       done: {},
       paginationControl: {
-        rowsPerPage: 0,
+        rowsPerPage: 100,
       },
       columns: [
         {
@@ -220,43 +187,10 @@ export default {
           field: 'num',
         },
         {
-          name: 'print',
-          label: 'Print',
-          field: 1,
-        },
-        {
-          name: 'ebook',
-          label: 'eBook',
-          field: 36,
-        },
-        {
-          name: 'audio',
-          label: 'Audio',
-          field: 41,
-        },
-        {
-          name: 'audio2',
-          label: 'Audio2',
-          field: 52,
-        },
-        {
-          name: 'film',
-          label: 'Film',
-          field: 33,
-        },
-        {
-          name: 'unknown',
-          label: 'Unknown',
-          field: 0,
-        },
-        {
           name: 'frankenstein',
           label: 'Frankenstein',
           field: 'f',
-        },
-        {
-          name: 'details',
-          label: 'More Info',
+          type: 'fraction',
         },
       ],
       api: this.$jsPAPI({
@@ -271,28 +205,14 @@ export default {
           value: '*',
         },
       ],
-      batchOptions: [
-        {
-          label: 'Fast',
-          value: 1000,
-        },
-        {
-          label: 'Medium',
-          value: 100,
-        },
-        {
-          label: 'Slow',
-          value: 10,
-        },
-      ],
       showOptions: [
         {
           label: 'Show All',
           value: 'all',
         },
         {
-          label: 'Only Missing',
-          value: 'ms',
+          label: 'Incomplete: Frankenstein',
+          value: 'f',
         },
       ],
       keyOptions: [
@@ -320,6 +240,23 @@ export default {
     };
   },
   created() {
+    Object.keys(this.types).forEach((k) => {
+      this.detailsColumns.push({
+        name: this.types[k],
+        label: this.types[k],
+        field: k,
+      });
+      this.columns.push({
+        name: this.types[k],
+        label: this.types[k],
+        field: k,
+        type: 'fraction',
+      });
+      this.showOptions.push({
+        label: `Incomplete: ${this.types[k]}`,
+        value: k,
+      });
+    });
     this.api.collectionsGet()
       .then((r) => {
         const col = r.data.CollectionsRows;
@@ -482,7 +419,7 @@ export default {
       const series = r.data.FeatureContent.SeriesInfo;
       const item = r.data.TitleInfo;
       // If this is part of a series, process it
-      if (series && series.series_titles.length > 0) {
+      if (series && series.series_titles.length > 1) {
         // Check if we have seen this series before
         const ti = this.clean(series.full_title);
         const au = this.clean(item.author);
@@ -499,19 +436,19 @@ export default {
         if (key === false) {
           const titles = {};
           // Push the parsed array to the finished data array
-          const index = this.found.push({
+          const push = {
             title: ti,
             author: au,
             num: Object.keys(titles).length,
             titles,
-            1: 0,
-            33: 0,
-            36: 0,
-            41: 0,
-            52: 0,
-            0: 0,
-            f: 0,
+            found: {
+              f: 0,
+            },
+          };
+          Object.keys(this.types).forEach((t) => {
+            push.found[t] = 0;
           });
+          const index = this.found.push(push);
           // Loop through titles in series
           Object.values(series.series_titles).forEach((title) => {
             if (this.method === 'hybrid') {
@@ -544,20 +481,24 @@ export default {
         Object.keys(rows).forEach((k) => {
           // get the ToM
           const tom = rows[k].PrimaryTypeOfMaterial;
-          if (this.found[index].titles[title][tom] > 0) console.log(`Duplicate: ${title} - ${tom}`);
+          // Init if not already an integer
+          if (isNaN(parseInt(this.found[index].titles[title][tom], 10))) {
+            this.found[index].titles[title][tom] = 0;
+          }
+
           // Set ToM results # for the item to the SystemItemsTotal
-          this.found[index].titles[title][tom] = rows[k].SystemItemsTotal;
+          this.found[index].titles[title][tom] += rows[k].SystemItemsTotal;
+          // Polaris API sometimes returns 0 for items that do have copies in overdrive
+          // set '?' if this is the case
+          if (this.found[index].titles[title][tom] === 0) this.found[index].titles[title][tom] = '?';
         });
       }
       // Update the num of each ToM
       this.found[index].num = Object.keys(this.found[index].titles).length;
       // Reset counts for the title
-      this.found[index][1] = 0;
-      this.found[index][33] = 0;
-      this.found[index][36] = 0;
-      this.found[index][41] = 0;
-      this.found[index][52] = 0;
-      this.found[index][0] = 0;
+      Object.keys(this.types).forEach((t) => {
+        this.found[index][t] = 0;
+      });
       this.found[index].f = 0;
       // For each title in the series
       Object.keys(this.found[index].titles).forEach((t) => {
@@ -569,7 +510,8 @@ export default {
             this.found[index][i] += 1;
             frank = true;
           }
-          if (['1', '33', '36', '41', '52'].includes(i) === false) this.found[index][0] += 1;
+          // If not in specified types, add to unknown list
+          if (typeof (this.types[i]) === 'undefined') this.found[index][0] += 1;
         });
         if (frank) this.found[index].f += 1;
       });
