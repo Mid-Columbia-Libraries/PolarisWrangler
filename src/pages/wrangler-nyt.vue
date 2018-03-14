@@ -38,7 +38,6 @@ export default {
   watch: {
     selected: {
       handler() {
-        console.log(this.selected.lists);
       },
       deep: true,
     },

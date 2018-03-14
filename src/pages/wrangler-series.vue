@@ -65,7 +65,7 @@
     </div>
     <div class="searchresults flex flex-center full-width q-pa-sm">
       <q-table
-        class="bg-white text-dark full-width q-pr-lg"
+        class="bg-white text-dark full-width primary-results"
         color="black"
         dense
         :loading="status"
@@ -88,6 +88,10 @@
             <span class="q-body-1" v-if="props.cols[i].type === 'fraction'">
               {{ col.value }}/{{ props.row.num }}
             </span>
+            <span class="q-body-1" v-else-if="props.cols[i].type === 'missing'">
+              <span v-if="col.value > 0">-{{ col.value }}</span>
+              <span v-else><q-icon name="check" /></span>
+            </span>
             <span class="q-body-1" v-else>
               {{ col.value }}
             </span>
@@ -99,11 +103,12 @@
       <h4 row class="q-ma-sm">{{ details.title }}</h4>
       <div row class="q-ma-sm">
         <q-table
+          dense
           class="full-width"
           color="black"
           :data="details.table"
           :columns="detailsColumns"
-          :pagination.sync="paginationControl"
+          :pagination.sync="detailsPaginationControl"
           row-key="name"
         >
         </q-table>
@@ -120,91 +125,33 @@
 </template>
 
 <script>
-import seriesRow from './../components/series/series-row.vue';
 
 // AJAX Library
 const axios = require('axios');
 
 export default {
-  components: {
-    seriesRow,
-  },
   data() {
     return {
+      // Status message
       report: 'You haven\'t done anything yet. Good job.',
+      // Whether a search is in progress or not
       status: false,
+      // Percent bar
       statusPct: 0,
-      key: 'KW',
+      // Currently entered search term
       term: 'tolkien',
-      show: 'all',
-      batch: 100,
-      store: [],
-      method: 'hybrid',
-      dispatchCount: 0,
-      pending: false,
-      details: {},
-      detailsOpen: false,
-      types: {
-        0: 'Unknown',
-        1: 'Books',
-        33: 'Film',
-        36: 'eBook',
-        41: 'eAudio',
-        52: 'AudioCd',
-      },
-      detailsColumns: [
-        {
-          name: 'Title',
-          label: 'Title',
-          field: 'title',
-        },
-      ],
-      found: [
-        {
-          title: 'Lord of the Rings',
-          author: 'Tolkien',
-        },
-      ],
-      done: {},
-      paginationControl: {
-        rowsPerPage: 100,
-      },
-      columns: [
-        {
-          name: 'title',
-          label: 'Series',
-          field: 'title',
-          required: true,
-        },
-        {
-          name: 'author',
-          label: 'Author',
-          field: 'author',
-        },
-        {
-          name: 'num',
-          label: '#',
-          field: 'num',
-        },
-        {
-          name: 'frankenstein',
-          label: 'Frankenstein',
-          field: 'f',
-          type: 'fraction',
-        },
-      ],
-      api: this.$jsPAPI({
-        server: this.$config.get('polarisUrl'),
-        accessid: this.$config.get('polarisId'),
-        key: this.$config.get('polarisKey'),
-      }),
+      // Currently selected 'Collections' option
       collection: '*',
+      // List of options for 'Collections' selector
       collections: [
         {
           label: 'All',
           value: '*',
         },
       ],
+      // Currently selected 'Show' option
+      show: 'all',
+      // List of options for 'Show' selector
       showOptions: [
         {
           label: 'Show All',
@@ -215,6 +162,9 @@ export default {
           value: 'f',
         },
       ],
+      // Currently selected 'Key' option
+      key: 'KW',
+      // List of optins for 'Key' selector
       keyOptions: [
         {
           label: 'Keyword',
@@ -237,26 +187,141 @@ export default {
           value: 'TI',
         },
       ],
+      // # requests to batch at once
+      batch: 1000,
+      // Confirmation method
+      method: 'hybrid',
+      // Keep track of pending AJAX requests
+      dispatchCount: 0,
+      // Signals whether initial lookups have completed
+      pending: false,
+      // Storage for details popup window data
+      details: {},
+      // Controls details modal open/close
+      detailsOpen: false,
+      // Valid format types list
+      types: {
+        1: {
+          name: 'Book',
+          enable: true,
+        },
+        33: {
+          name: 'Film',
+          enable: false,
+        },
+        36: {
+          name: 'eBook',
+          enable: true,
+        },
+        41: {
+          name: 'eAudio',
+          enable: true,
+        },
+        52: {
+          name: 'AudioCD',
+          enable: true,
+        },
+        999: {
+          name: 'Unknown',
+          enable: false,
+        },
+      },
+      // List search results returned from initial polaris search
+      store: [],
+      // Master storage for confirmed results
+      found: [],
+      // List of ISBNs already checked
+      done: {},
+      // Pagination controller for main table
+      detailsPaginationControl: {
+        rowsPerPage: 20,
+      },
+      // Table Column config for detail modal
+      detailsColumns: [
+        {
+          name: 'Title',
+          label: 'Title',
+          field: 'title',
+        },
+      ],
+      // Pagination controller for main table
+      paginationControl: {
+        rowsPerPage: 50,
+      },
+      // Table Columns config for main display table
+      columns: [
+        {
+          name: 'title',
+          label: 'Series',
+          field: 'title',
+          required: true,
+          sortable: true,
+        },
+        {
+          name: 'author',
+          label: 'Author',
+          field: 'author',
+          sortable: true,
+        },
+        {
+          name: 'num',
+          label: '#',
+          field: 'num',
+          sortable: true,
+        },
+        {
+          name: 'frankenstein',
+          label: 'Frankenstein',
+          field: 'f',
+          type: 'fraction',
+          sortable: true,
+        },
+        {
+          name: 'frankenstein_missing',
+          label: '-',
+          field: 'fm',
+          type: 'missing',
+          sortable: true,
+        },
+      ],
+      // Polaris API controller object
+      api: this.$jsPAPI({
+        server: this.$config.get('polarisUrl'),
+        accessid: this.$config.get('polarisId'),
+        key: this.$config.get('polarisKey'),
+      }),
     };
   },
   created() {
+    // Add enabled ToMs to selection & table controllers
     Object.keys(this.types).forEach((k) => {
-      this.detailsColumns.push({
-        name: this.types[k],
-        label: this.types[k],
-        field: k,
-      });
-      this.columns.push({
-        name: this.types[k],
-        label: this.types[k],
-        field: k,
-        type: 'fraction',
-      });
-      this.showOptions.push({
-        label: `Incomplete: ${this.types[k]}`,
-        value: k,
-      });
+      if (this.types[k].enable === true) {
+        this.detailsColumns.push({
+          name: this.types[k].name,
+          label: this.types[k].name,
+          field: k,
+        });
+        this.columns.push({
+          name: this.types[k].name,
+          label: this.types[k].name,
+          field: k,
+          type: 'fraction',
+          sortable: true,
+        },
+        {
+          name: `${this.types[k].name}_missing`,
+          label: '-',
+          field: `${k}m`,
+          type: 'missing',
+          sortable: true,
+        });
+        this.showOptions.push({
+          label: `Incomplete: ${this.types[k].name}`,
+          value: k,
+        });
+      }
     });
+    // Add collections from PAC to selection
     this.api.collectionsGet()
       .then((r) => {
         const col = r.data.CollectionsRows;
@@ -269,9 +334,12 @@ export default {
       });
   },
   methods: {
+    // Dump output to log
     log(r) {
       console.log(r);
     },
+
+    // Shows a modal of the results for the selected row
     showModal(row) {
       this.details = row;
       this.details.table = [];
@@ -287,6 +355,7 @@ export default {
       });
       this.detailsOpen = true;
     },
+
     // React when Wrangle button is clicked
     wrangle() {
       // Report displays the current state of operations for the user
@@ -299,27 +368,32 @@ export default {
       // Bind context and make initial call to recursive lookup
       this.getPacResults.bind(this)(1);
     },
+
     // React when abort button is clicked
     abort() {
       this.cancel('Search aborted.');
     },
+
     // Stop execution with a status message
     cancel(msg) {
       this.status = false;
       this.statusPct = 0;
       this.report = msg;
     },
+
     // Update progress bar and report msg
     progress(pct, msg) {
       this.statusPct = pct;
       this.report = msg;
     },
+
     // Signal that process completed successfully
     finish() {
       this.status = false;
       this.statusPct = 0;
       this.report = 'Good job. You did it.';
     },
+
     // Begins chain, gets initial pac results
     getPacResults(offset = 1) {
       // If process was aborted, stop execution
@@ -366,13 +440,14 @@ export default {
           this.cancel('Oops. There was a network problem connecting to Polaris.');
         });
     },
+
     // Checks if item is a new ISBN and dispatches NV request
     nvHandler(i = 0) {
       // If process was aborted, stop execution
       if (!this.status) return;
       // Clean up ISBN
       const isbn = this.trimISBN(this.store[i].ISBN);
-      // If item returned a valid ISBN, send to NoveList
+      // If item returned a valid ISBN && is a new ISBN, send to NoveList
       if (isbn && typeof (this.done[isbn]) === 'undefined') { this.getNvItem(i, isbn); }
       // Otherwise continue to next item
       else if (i < (this.store.length)) {
@@ -383,7 +458,8 @@ export default {
         this.pending = false;
       }
     },
-    // Gets the item from NV and parses it
+
+    // Gets the item from NV, loops until all results parsed
     getNvItem(i, isbn) {
       // Set AJAX params for NoveList Call
       const url = 'https://novselect.ebscohost.com/Data/ContentByQuery';
@@ -397,7 +473,7 @@ export default {
       // Perform AJAX call to NoveList
       axios.get(url, { params: attr })
         .then((r) => {
-          // Extract data from results
+          // Dispatch handler to verify results with PAC
           this.extractResults(r);
           // Increment and check if we need to continue
           i += 1;
@@ -416,6 +492,8 @@ export default {
           this.cancel('Oops. There was a network problem connecting to NoveList');
         });
     },
+
+    // Handle the callback from the NV lookup
     extractResults(r) {
       // If process was aborted, stop execution
       if (!this.status) return;
@@ -426,7 +504,6 @@ export default {
         // Check if we have seen this series before
         const ti = this.clean(series.full_title);
         const au = this.clean(item.author);
-
         let key = false;
         for (let k = 0; k < this.found.length; k += 1) {
           if (this.found[k].title === ti && this.found[k].author === au) {
@@ -434,11 +511,10 @@ export default {
             break;
           }
         }
-
         // If this is a new series, process it
         if (key === false) {
           const titles = {};
-          // Push the parsed array to the finished data array
+          // Push an initialized array for the finished object
           const push = {
             title: ti,
             author: au,
@@ -448,15 +524,19 @@ export default {
               f: 0,
             },
           };
+          // Set found # of each type to 0
           Object.keys(this.types).forEach((t) => {
             push.found[t] = 0;
           });
+          // Store index of pushed object
           const index = this.found.push(push);
           // Loop through titles in series
           Object.values(series.series_titles).forEach((title) => {
             if (this.method === 'hybrid') {
               const itemTi = this.clean(title.main_title);
+              // Generate query to send to pac
               const query = `search/bibs/boolean?q=((AU=${au}) AND (TI=${itemTi})) OR ISBN=${title.primary_isbn}&bibsperpage=1000`;
+              // Dispatch verification to PAC
               this.dispatchCount += 1;
               this.api.call(query)
                 .then(r2 => this.confirmByHybrid(r2, index - 1, itemTi));
@@ -472,6 +552,8 @@ export default {
         }
       }
     },
+
+    // Handle the callback from the PAC verification step
     confirmByHybrid(r, index, title) {
       // Cancel if user aborted
       if (!this.status) return;
@@ -479,6 +561,7 @@ export default {
       if (!this.found[index].titles[title]) this.found[index].titles[title] = {};
       // If some data found
       if (r.data.PAPIErrorCode > 0) {
+        console.log(r.data);
         const rows = r.data.BibSearchRows;
         // For each returned row
         Object.keys(rows).forEach((k) => {
@@ -501,6 +584,7 @@ export default {
       // Reset counts for the title
       Object.keys(this.types).forEach((t) => {
         this.found[index][t] = 0;
+        this.found[index][`${t}m`] = 0;
       });
       this.found[index].f = 0;
       // For each title in the series
@@ -509,18 +593,26 @@ export default {
         // For each ToM of the title
         Object.keys(this.found[index].titles[t]).forEach((i) => {
           // If title has at least 1 item of this ToM, update count for ToM
-          if (this.found[index].titles[t][i] > 0) {
-            this.found[index][i] += 1;
-            frank = true;
+          if (this.types[i].enable === true) {
+            if (this.found[index].titles[t][i] > 0) {
+              this.found[index][i] += 1;
+              frank = true;
+            }
           }
           // If not in specified types, add to unknown list
-          if (typeof (this.types[i]) === 'undefined') this.found[index][0] += 1;
+          if (typeof (this.types[i]) === 'undefined') this.found[index][999] += 1;
         });
         if (frank) this.found[index].f += 1;
       });
+      Object.keys(this.types).forEach((k) => {
+        this.found[index][`${k}m`] = this.found[index].num - this.found[index][k];
+      });
+      this.found[index].fm = this.found[index].num - this.found[index].f;
       this.dispatchCount -= 1;
       if (!this.pending && this.dispatchCount === 0) this.finish();
     },
+
+    // Removes whitespace and extra details PAC liked to add to ISBNs
     trimISBN(str) {
       if (!str) return false;
       str = str.split(' ');
@@ -528,20 +620,14 @@ export default {
       str = str.replace(/[^0-9]/g, '');
       return str;
     },
+
+    // Removes punctuation, used for author/title strings
     clean(str) {
       if (!str) return '';
       str = str.toUpperCase();
       str = str.replace(/AUTHOR/g, '');
       str = str.replace(/EDITOR/g, '');
       str = str.replace(/[^A-Z ]/g, '');
-      return str;
-    },
-    strip(str) {
-      if (!str) return '';
-      str = str.toUpperCase();
-      str = str.replace(/AUTHOR/g, '');
-      str = str.replace(/EDITOR/g, '');
-      str = str.replace(/[^A-Z]/g, '');
       return str;
     },
   },
@@ -554,4 +640,14 @@ export default {
     margin-top: -24px
     margin-bottom: 24px
     z-index: 100
+  .modal
+    .q-table-dense .q-table th,
+    .q-table-dense .q-table td
+      padding: 4px 20px
+  .primary-results.q-table-dense .q-table th,
+  .primary-results.q-table-dense .q-table td
+    padding: 4px 0
+  .primary-results.q-table-dense .q-table th:last-child,
+  .primary-results.q-table-dense .q-table td:last-child
+    padding-right: 10px
 </style>

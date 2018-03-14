@@ -249,7 +249,6 @@ export default {
       };
       axios.get(url, { params: attr })
         .then((r) => {
-          console.log(r);
           if (r.status === 200) {
             this.nvLoading = false;
             this.nvStatus = true;
