@@ -33,27 +33,37 @@
     <q-card-actions class="row text-center">
       <div class="format-row q-pa-xs">
         <div>Book</div>
-        <div v-if="book.formats[1] > 0">{{ book.formats[1] }}</div>
+        <div v-if="typeof(book.formats[1]) !== 'undefined' && book.formats[1] > 0">
+          {{ book.formats[1] }}
+        </div>
         <div v-else>x</div>
       </div>
       <div class="format-row q-pa-xs">
         <div>Large</div>
-        <div v-if="book.formats[27]">{{ book.formats[27] }}</div>
+        <div v-if="typeof(book.formats[27]) !== 'undefined' && book.formats[27] > 0">
+          {{ book.formats[27] }}
+        </div>
         <div v-else>x</div>
       </div>
       <div class="format-row q-pa-xs">
         <div>eBook</div>
-        <div v-if="book.formats[36]">{{ book.formats[36] }}</div>
+        <div v-if="typeof(book.formats[36]) !== 'undefined' && book.formats[36] > 0">
+          {{ book.formats[36] }}
+        </div>
         <div v-else>x</div>
       </div>
       <div class="format-row q-pa-xs">
         <div>Audio</div>
-        <div v-if="book.formats[41]">{{ book.formats[41] }}</div>
-        <div v-else>x</div>
+        <div v-if="typeof(book.formats[41]) !== 'undefined' && book.formats[41] > 0">
+          {{ book.formats[41] }}
+        </div>
+        <div class="x" v-else>x</div>
       </div>
       <div class="format-row q-pa-xs">
         <div>eAudio</div>
-        <div v-if="book.formats[52]">{{ book.formats[52] }}</div>
+        <div v-if="typeof(book.formats[52]) !== 'undefined' && book.formats[52] > 0">
+          {{ book.formats[52] }}
+        </div>
         <div v-else>x</div>
       </div>
       <div class="col-1" />
@@ -75,7 +85,7 @@ export default {
 @import '~variables'
   .format-row
     width: 20%
-    &.no
+    .x
       background-color: $red-2
   .q-card-media
     width: 100%

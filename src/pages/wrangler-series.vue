@@ -20,6 +20,7 @@
       <q-input
         class="col-3 q-ml-sm"
         v-model="term"
+        @keyup.enter="wrangle"
         inverted
         placeholder="Enter a search term"
         autofocus
@@ -74,7 +75,7 @@
         :pagination.sync="paginationControl"
         row-key="name"
       >
-        <q-tr @click.native="showModal(props.row)"
+        <q-tr class="series-row" @click.native="showModal(props.row)"
           v-if="
             // Don't show series with only 1 item
             props.row.num > 1
@@ -111,6 +112,13 @@
           :pagination.sync="detailsPaginationControl"
           row-key="name"
         >
+          <q-td slot="body-cell-Title" slot-scope="props" :props="props">
+            <q-btn flat @click.native="shell.openExternal(
+              `https://${$config.get('polarisUrl')}/polaris/search/searchresults.aspx?ctx=1.1033.0.0.6&type=Advanced&term=${props.row.author}&relation=ALL&by=AU&term2=${props.row.title}&by2=TI`
+            )">
+              {{ props.row.title }}
+            </q-btn>
+          </q-td>
         </q-table>
       </div>
       <q-btn
@@ -128,16 +136,20 @@
 
 // AJAX Library
 const axios = require('axios');
+const { shell } = require('electron');
 
 export default {
   data() {
     return {
+      shell,
       // Status message
       report: 'You haven\'t done anything yet. Good job.',
       // Whether a search is in progress or not
       status: false,
       // Percent bar
       statusPct: 0,
+      // Current search token used to invalidate stale XHR
+      token: '',
       // Currently entered search term
       term: 'tolkien',
       // Currently selected 'Collections' option
@@ -234,7 +246,7 @@ export default {
       done: {},
       // Pagination controller for main table
       detailsPaginationControl: {
-        rowsPerPage: 20,
+        rowsPerPage: 10,
       },
       // Table Column config for detail modal
       detailsColumns: [
@@ -338,7 +350,6 @@ export default {
     log(r) {
       console.log(r);
     },
-
     // Shows a modal of the results for the selected row
     showModal(row) {
       this.details = row;
@@ -346,6 +357,7 @@ export default {
       Object.keys(row.titles).forEach((r) => {
         this.details.table.push({
           title: r,
+          author: row.author,
           1: row.titles[r][1],
           33: row.titles[r][33],
           36: row.titles[r][36],
@@ -360,13 +372,14 @@ export default {
     wrangle() {
       // Report displays the current state of operations for the user
       this.report = 'Starting search...';
+      this.token = `${Date.now()}${(1 + Math.random()).toString(36).substr(7)}`;
       this.status = true;
       this.store = [];
       this.done = {};
       this.found = [];
       this.pending = true;
       // Bind context and make initial call to recursive lookup
-      this.getPacResults.bind(this)(1);
+      this.getPacResults.bind(this)(1, this.token);
     },
 
     // React when abort button is clicked
@@ -376,6 +389,7 @@ export default {
 
     // Stop execution with a status message
     cancel(msg) {
+      this.token = '';
       this.status = false;
       this.statusPct = 0;
       this.report = msg;
@@ -390,113 +404,113 @@ export default {
     // Signal that process completed successfully
     finish() {
       this.status = false;
+      this.token = '';
       this.statusPct = 0;
       this.report = 'Good job. You did it.';
     },
 
     // Begins chain, gets initial pac results
-    getPacResults(offset = 1) {
+    getPacResults(offset = 1, token) {
       // If process was aborted, stop execution
-      if (!this.status) return;
+      if (token !== this.token) return;
 
       // Perform the search
       const querystring = `${this.key}=${this.term} AND (COL=${this.collection})`;
       this.api.bibSearch(querystring, offset, this.batch)
         // Wait for response from Polaris
-        .then((r) => {
-          // User aborted
-          if (!this.status) return;
-          // If error code -1, something went wrong at Polaris
-          if (r.data.PAPIErrorCode < 0) {
-            this.cancel(`Polaris says: ${r.data.ErrorMessage}`);
-            return;
-          }
-          // If error code = 0, no results found
-          if (r.data.PAPIErrorCode === 0) {
-            this.cancel('No results found for that query.');
-            return;
-          }
-          // If current results less than total, add to data array and recurse
-          const cur = ((offset - 1) * this.batch) + r.data.PAPIErrorCode;
-          if (cur < r.data.TotalRecordsFound) {
-            this.progress(
-              (cur / r.data.TotalRecordsFound) * 50,
-              `Retrieved ${cur} of ${r.data.TotalRecordsFound}...`,
-            );
-            // Append store with new results
-            this.store = this.store.concat(r.data.BibSearchRows);
-            // Increment and recurse...
-            offset += 1;
-            this.getPacResults(offset);
-            return;
-          }
-          // Else, we are done, append final results & send to nvHandler()
-          this.store = this.store.concat(r.data.BibSearchRows);
-          this.progress(50, `Retrieved ${r.data.TotalRecordsFound} records, processing...`);
+        .then((r) => { this.handleBibSearch(r, offset, token); })
+        .catch(() => { this.cancel('Oops. There was a network problem connecting to Polaris.'); });
+    },
 
-          this.nvHandler();
-        })
-        .catch(() => {
-          this.cancel('Oops. There was a network problem connecting to Polaris.');
-        });
+    handleBibSearch(r, offset, token) {
+      // User aborted
+      if (token !== this.token) return;
+      // If error code -1, something went wrong at Polaris
+      if (r.data.PAPIErrorCode < 0) {
+        this.cancel(`Polaris says: ${r.data.ErrorMessage}`);
+        return;
+      }
+      // If error code = 0, no results found
+      if (r.data.PAPIErrorCode === 0) {
+        this.cancel('No results found for that query.');
+        return;
+      }
+      // If current results less than total, add to data array and recurse
+      const cur = ((offset - 1) * this.batch) + r.data.PAPIErrorCode;
+      if (cur < r.data.TotalRecordsFound) {
+        this.progress(
+          (cur / r.data.TotalRecordsFound) * 50,
+          `Retrieved ${cur} of ${r.data.TotalRecordsFound}...`,
+        );
+        // Append store with new results
+        this.store = this.store.concat(r.data.BibSearchRows);
+        // Increment and recurse...
+        offset += 1;
+        this.getPacResults(offset, token);
+        return;
+      }
+      // Else, we are done, append final results & send to nvHandler()
+      this.store = this.store.concat(r.data.BibSearchRows);
+      this.progress(50, `Retrieved ${r.data.TotalRecordsFound} records, processing...`);
+
+      this.nvHandler(0, token);
     },
 
     // Checks if item is a new ISBN and dispatches NV request
-    nvHandler(i = 0) {
+    nvHandler(i, token) {
       // If process was aborted, stop execution
-      if (!this.status) return;
+      if (token !== this.token) return;
       // Clean up ISBN
       const isbn = this.trimISBN(this.store[i].ISBN);
       // If item returned a valid ISBN && is a new ISBN, send to NoveList
-      if (isbn && typeof (this.done[isbn]) === 'undefined') { this.getNvItem(i, isbn); }
+      if (isbn && typeof (this.done[isbn]) === 'undefined') {
+        // Set AJAX params for NoveList Call
+        const url = 'https://novselect.ebscohost.com/Data/ContentByQuery';
+        const attr = {
+          profile: this.$config.get('nvProfile'),
+          password: this.$config.get('nvPassword'),
+          siteToken: null,
+          isbn,
+          clientIdentifier: 'test',
+        };
+        // Perform AJAX call to NoveList
+        axios.get(url, { params: attr })
+          .then((r) => { this.handleNvItem(r, i, isbn, token); })
+          .catch(() => { this.cancel('Oops. There was a network problem connecting to NoveList'); });
+      }
       // Otherwise continue to next item
       else if (i < (this.store.length)) {
         i += 1;
-        this.nvHandler(i);
+        this.nvHandler(i, token);
       }
       else {
         this.pending = false;
       }
     },
 
-    // Gets the item from NV, loops until all results parsed
-    getNvItem(i, isbn) {
-      // Set AJAX params for NoveList Call
-      const url = 'https://novselect.ebscohost.com/Data/ContentByQuery';
-      const attr = {
-        profile: this.$config.get('nvProfile'),
-        password: this.$config.get('nvPassword'),
-        siteToken: null,
-        isbn,
-        clientIdentifier: 'test',
-      };
-      // Perform AJAX call to NoveList
-      axios.get(url, { params: attr })
-        .then((r) => {
-          // Dispatch handler to verify results with PAC
-          this.extractResults(r);
-          // Increment and check if we need to continue
-          i += 1;
-          if (i < (this.store.length)) {
-            // Update progress bar
-            this.progress(
-              ((i / this.store.length) * 50) + 50,
-              `Processed ${i} of ${this.store.length - 1}...`,
-            );
-            this.nvHandler(i);
-          } else {
-            this.pending = false;
-          }
-        })
-        .catch(() => {
-          this.cancel('Oops. There was a network problem connecting to NoveList');
-        });
+    // Handle callback from NV lookup
+    handleNvItem(r, i, isbn, token) {
+      if (token !== this.token) return;
+      // Dispatch handler to verify results with PAC
+      this.extractResults(r, token);
+      // Increment and check if we need to continue
+      i += 1;
+      if (i < (this.store.length)) {
+        // Update progress bar
+        this.progress(
+          ((i / this.store.length) * 50) + 50,
+          `Processed ${i} of ${this.store.length - 1}...`,
+        );
+        this.nvHandler(i, token);
+      } else {
+        this.pending = false;
+      }
     },
 
     // Handle the callback from the NV lookup
-    extractResults(r) {
+    extractResults(r, token) {
       // If process was aborted, stop execution
-      if (!this.status) return;
+      if (token !== this.token) return;
       const series = r.data.FeatureContent.SeriesInfo;
       const item = r.data.TitleInfo;
       // If this is part of a series, process it
@@ -539,7 +553,7 @@ export default {
               // Dispatch verification to PAC
               this.dispatchCount += 1;
               this.api.call(query)
-                .then(r2 => this.confirmByHybrid(r2, index - 1, itemTi));
+                .then(r2 => this.confirmByHybrid(r2, index - 1, itemTi, token));
             }
             // Loop through manifestations of the title
             Object.values(title.manifestations).forEach((manifestation) => {
@@ -554,9 +568,9 @@ export default {
     },
 
     // Handle the callback from the PAC verification step
-    confirmByHybrid(r, index, title) {
+    confirmByHybrid(r, index, title, token) {
       // Cancel if user aborted
-      if (!this.status) return;
+      if (token !== this.token) return;
       // Init titles obj
       if (!this.found[index].titles[title]) this.found[index].titles[title] = {};
       // If some data found
@@ -639,6 +653,8 @@ export default {
     margin-top: -24px
     margin-bottom: 24px
     z-index: 100
+  .series-row
+    cursor: pointer
   .modal
     .q-table-dense .q-table th,
     .q-table-dense .q-table td
