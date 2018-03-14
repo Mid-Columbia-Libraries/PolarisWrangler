@@ -5,7 +5,7 @@
       <div class="lists q-pa-md bg-white">
         <h4 class="text-black q-ma-sm">Select Lists to Search:</h4>
         <q-btn class="full-width q-mb-md" color="primary"
-          @click="selected.lists = []">
+          @click="clear">
           Clear Selection
         </q-btn>
         <nyt-list
@@ -27,8 +27,8 @@
         <div class="status flex text-weight-bold flex-center full-width">
           {{ report }}
         </div>
-        <div class="book-covers q-pl-lg q-mt-xl">
-          <book-cover v-for="book in lookup" :key="book.id" :book="book" />
+        <div class="book-covers q-pl-lg q-mt-lg">
+          <book-cover v-for="book in found" :key="book.id" :book="book" />
         </div>
       </div>
     </div>
@@ -65,6 +65,7 @@ export default {
       sent: 0,
       // List of items we need to lookup
       lookup: [],
+      found: [],
       // Polaris API controller object
       api: this.$jsPAPI({
         server: this.$config.get('polarisUrl'),
@@ -83,13 +84,16 @@ export default {
       handler() {
         // Cancel any ongoing lookup
         this.cancel();
-        this.report = '(ง’̀-‘́)ง';
         this.startLookup();
       },
       deep: true,
     },
   },
   methods: {
+    clear() {
+      this.selected.lists = [];
+      this.cancel();
+    },
     cancel() {
       this.report = '';
       this.token = '';
@@ -100,10 +104,13 @@ export default {
     },
     // Kicks off lookup chain
     startLookup() {
+      this.lookup = [];
+      this.found = [];
       // Generate new search validator token
       this.token = `${Date.now()}${(1 + Math.random()).toString(36).substr(7)}`;
       // For each list, send an get titles from NYT
       this.selected.lists.forEach((l) => {
+        this.report = '(ง’̀-‘́)ง';
         this.sent += 1;
         axios.get('https://api.nytimes.com/svc/books/v3/lists.json',
           { params: {
@@ -144,8 +151,8 @@ export default {
       this.xhrCount -= 1;
       if (this.xhrCount === 0) {
         this.statusPct = 100;
-        console.log(this.lookup);
         this.report = '';
+        this.found = this.lookup;
       }
     },
     // Check if we have seen this book already (from another list)
@@ -158,7 +165,6 @@ export default {
       book.rank = row.rank;
       book.published_date = row.published_date;
       book.status = false;
-      console.log(book);
       book.img = this.$getSyndeticsImage(2, book.primary_isbn13);
       book.formats = [];
       // Init list of lists this book is on
@@ -207,8 +213,7 @@ export default {
 <style lang="stylus">
 @import '~variables'
   .status
-    position: relative
-    margin-top: -24px
-    margin-bottom: 24px
+    position: absolute
+    margin-top: -30px
     z-index: 100
 </style>

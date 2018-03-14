@@ -31,42 +31,15 @@
     </q-card-main>
     <q-card-separator />
     <q-card-actions class="row text-center">
-      <div class="format-row q-pa-xs">
-        <div>Book</div>
-        <div v-if="typeof(book.formats[1]) !== 'undefined' && book.formats[1] > 0">
-          {{ book.formats[1] }}
+      <div v-for="(type, i) in types" :key="type.name" class="col-2 format-row q-pa-xs">
+        <div>{{ type.name }}</div>
+        <div v-if="book.formats[i]">
+          {{ book.formats[i] }}
         </div>
-        <div v-else>x</div>
-      </div>
-      <div class="format-row q-pa-xs">
-        <div>Large</div>
-        <div v-if="typeof(book.formats[27]) !== 'undefined' && book.formats[27] > 0">
-          {{ book.formats[27] }}
+        <div class="x" v-else>
+          x
         </div>
-        <div v-else>x</div>
       </div>
-      <div class="format-row q-pa-xs">
-        <div>eBook</div>
-        <div v-if="typeof(book.formats[36]) !== 'undefined' && book.formats[36] > 0">
-          {{ book.formats[36] }}
-        </div>
-        <div v-else>x</div>
-      </div>
-      <div class="format-row q-pa-xs">
-        <div>Audio</div>
-        <div v-if="typeof(book.formats[41]) !== 'undefined' && book.formats[41] > 0">
-          {{ book.formats[41] }}
-        </div>
-        <div class="x" v-else>x</div>
-      </div>
-      <div class="format-row q-pa-xs">
-        <div>eAudio</div>
-        <div v-if="typeof(book.formats[52]) !== 'undefined' && book.formats[52] > 0">
-          {{ book.formats[52] }}
-        </div>
-        <div v-else>x</div>
-      </div>
-      <div class="col-1" />
     </q-card-actions>
   </q-card>
 </template>
@@ -76,6 +49,28 @@ export default {
   props: ['book'],
   data() {
     return {
+      types: {
+        1: {
+          name: 'BK',
+          enable: true,
+        },
+        33: {
+          name: 'LT',
+          enable: true,
+        },
+        36: {
+          name: 'EB',
+          enable: true,
+        },
+        41: {
+          name: 'EA',
+          enable: true,
+        },
+        52: {
+          name: 'CD',
+          enable: true,
+        },
+      },
     };
   },
 };
