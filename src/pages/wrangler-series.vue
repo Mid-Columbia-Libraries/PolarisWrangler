@@ -561,7 +561,6 @@ export default {
       if (!this.found[index].titles[title]) this.found[index].titles[title] = {};
       // If some data found
       if (r.data.PAPIErrorCode > 0) {
-        console.log(r.data);
         const rows = r.data.BibSearchRows;
         // For each returned row
         Object.keys(rows).forEach((k) => {

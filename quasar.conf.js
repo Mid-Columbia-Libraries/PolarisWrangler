@@ -9,6 +9,7 @@ module.exports = function (ctx) {
       'config',
       'jsPAPI',
       'pages',
+      'syndeticsImages',
     ],
     css: [
       'app.styl'
