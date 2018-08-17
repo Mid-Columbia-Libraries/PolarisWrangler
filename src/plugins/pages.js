@@ -25,6 +25,12 @@ export default ({ Vue }) => {
       desc: 'Test queries to the API.',
       path: 'api-wrangler',
     },
+    OclcWrangler: {
+      name: 'OCLC Wrangler',
+      icon: 'assignment',
+      desc: 'Generate new MARC records based on OCLC components.',
+      path: 'oclc-wrangler',
+    },
     Separator1: {
       name: 'separator',
     },

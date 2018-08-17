@@ -18,14 +18,14 @@
         inverted
       />
       <q-checkbox class="col-2 round-borders text-dark bg-white q-ml-sm q-pa-sm"
-        v-model="useToken" label="Use Credentials" />
+        v-model="useCredentials" label="Use Credentials" />
       <q-input
         class="col-2 q-ml-sm"
         v-model="user"
         inverted
         placeholder="User"
         clearable
-        :disabled="!useToken"
+        :disabled="!useCredentials"
       />
       <q-input
         class="col-2 q-ml-sm"
@@ -33,7 +33,15 @@
         inverted
         placeholder="Password"
         clearable
-        :disabled="!useToken"
+        :disabled="!useCredentials"
+      />
+      <q-input
+        class="col-2 q-ml-sm"
+        v-model="domain"
+        inverted
+        placeholder="Domain"
+        clearable
+        :disabled="!useCredentials"
       />
       <q-select
         class="col-1 q-ml-sm"
@@ -71,6 +79,7 @@
 
 <script>
 import VueJsonPretty from 'vue-json-pretty';
+// import { stringify } from 'querystring';
 
 export default {
   data() {
@@ -83,10 +92,10 @@ export default {
       },
       // Whether to use Patron or Protected authlvl
       authlvl: 'protected',
-      useToken: false,
-      token: false,
+      useCredentials: false,
       user: '',
       pass: '',
+      domain: '',
       status: false,
       authOptions: [
         {
@@ -150,19 +159,25 @@ export default {
       this.status = true;
       this.output.data = {};
       this.output.config = {};
-      const pass = Object.assign({}, this.params);
-      this.api.call(this.query, pass)
-        .then((r) => {
-          this.status = false;
-          this.output.config = this.getCfg(r);
-          delete r.config;
-          this.output.data = r;
-          this.status = false;
-        })
-        .catch((e) => {
-          this.output.config = this.getCfg(e);
-          this.status = false;
+      if (this.useCredentials) {
+        this.api.authenticateStaff(this.user, this.pass, this.domain).then((r) => {
+          console.log(r);
         });
+      } else {
+        const pass = Object.assign({}, this.params);
+        this.api.call(this.query, pass)
+          .then((r) => {
+            this.status = false;
+            this.output.config = this.getCfg(r);
+            delete r.config;
+            this.output.data = r;
+            this.status = false;
+          })
+          .catch((e) => {
+            this.output.config = this.getCfg(e);
+            this.status = false;
+          });
+      }
     },
     abort() {
 

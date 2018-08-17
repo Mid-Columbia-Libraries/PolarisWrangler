@@ -40,6 +40,14 @@ export default [
     ],
   },
 
+  {
+    path: '/oclc-wrangler',
+    component: () => import('layouts/default'),
+    children: [
+      { path: '', component: () => import('pages/wrangler-oclc') },
+    ],
+  },
+
   { // Always leave this as last one
     path: '*',
     component: () => import('pages/404'),

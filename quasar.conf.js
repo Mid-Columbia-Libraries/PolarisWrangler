@@ -4,12 +4,12 @@ module.exports = function (ctx) {
   return {
     // app plugins (/src/plugins)
     plugins: [
-      'i18n',
       'axios',
       'config',
       'jsPAPI',
       'pages',
       'syndeticsImages',
+      'marc',
     ],
     css: [
       'app.styl'
@@ -77,7 +77,6 @@ module.exports = function (ctx) {
         'QSpinner',
         'QSpinnerPie',
         'QCheckbox',
-        'QField',
         'QSelect',
         'QProgress',
         'QTable',
