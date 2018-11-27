@@ -1,0 +1,41 @@
+patch-package
+--- a/node_modules/marc4js/lib/parse.js
++++ b/node_modules/marc4js/lib/parse.js
+@@ -1,5 +1,16 @@
+ 'use strict';
+ 
++var parsers = {
++    iso2709: require('./parse/iso2709_parser'),
++    marc: require('./parse/iso2709_parser'),
++    text: require('./parse/text_parser'),
++    mrk: require('./parse/mrk_parser'),
++    marcxml: require('./parse/marcxml_parser'),
++    xml: require('./parse/marcxml_parser'),
++    json: require('./parse/mij_parser'),
++    mij: require('./parse/mij_parser')
++}
++
+ module.exports = function() {
+     var callback, called, records, data, options, parser;
+     if (arguments.length === 3) {
+@@ -28,19 +39,8 @@ module.exports = function() {
+         options = {};
+     }
+ 
+-    var parsers = {
+-        iso2709: './parse/iso2709_parser',
+-        marc: './parse/iso2709_parser',
+-        text: './parse/text_parser',
+-        mrk: './parse/mrk_parser',
+-        marcxml: './parse/marcxml_parser',
+-        xml: './parse/marcxml_parser',
+-        json: './parse/mij_parser',
+-        mij: './parse/mij_parser'
+-    };
+-
+     var format = options.format || options.fromFormat || 'iso2709';
+-    var Parser = require(parsers[format]);
++    var Parser = parsers[format];
+     parser = new Parser(options);
+     if (typeof data !== 'undefined') {
+         process.nextTick(function() {

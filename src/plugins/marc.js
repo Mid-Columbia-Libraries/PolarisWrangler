@@ -1,6 +1,6 @@
 const remote = require('electron').remote;
 const { dialog } = require('electron').remote;
-const marc = require('marc4js');
+const marc = require('./marc4js');
 
 const fs = remote.require('fs');
 // const path = require('path');
