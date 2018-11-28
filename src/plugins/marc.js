@@ -1,6 +1,6 @@
 const remote = require('electron').remote;
 const { dialog } = require('electron').remote;
-const marc = require('./marc4js');
+const marc = require('marc4js');
 
 const fs = remote.require('fs');
 // const path = require('path');
@@ -13,7 +13,7 @@ export default ({ Vue }) => {
     fs.readFile(loc, (err, data) => {
       if (err) {
         // return error code
-        return false;
+        callback(err);
       }
 
       // return marc text string
@@ -24,14 +24,15 @@ export default ({ Vue }) => {
        *
        */
       marc.parse(data, null, (e, records) => {
-        console.log(data);
         if (e) {
-          console.log(e);
+          callback(e);
         }
-        console.log(records);
+        Object.keys(records).forEach((k) => {
+          records[k].id = k;
+        });
+        callback(records);
       });
 
-      callback(data);
       return true;
     });
   }

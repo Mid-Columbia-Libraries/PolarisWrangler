@@ -23,36 +23,55 @@
       </q-card>
     </div>
     <div class="row flex flex-center full-width q-pa-sm">
-      {{ record }}
+      <q-carousel
+        id="marc-record-carousel"
+        class="text-white"
+        :arrows=true
+        :quick-nav=true
+      >
+        <q-carousel-slide
+          v-bind:key="record._leader._baseAddressOfData"
+          v-for="record in records"
+        >
+          <marc-record
+            :record="record"
+            :length="Object.keys(record).length"
+          />
+        </q-carousel-slide>
+      </q-carousel>
     </div>
   </q-page>
 </template>
 
 <script>
 
+import marcRecord from './../components/marc/marc-record.vue';
+
 export default {
   data() {
     return {
-      record: '',
+      records: '',
+      marcDisplay: '',
       marc: this.$marc,
     };
   },
-  computed: {
-  },
   components: {
+    marcRecord,
+  },
+  computed: {
   },
   watch: {
   },
   methods: {
     read() {
-      this.record = this.marc.read(this.importRecord);
-      console.log(this.record);
+      this.marc.read(this.importRecord);
     },
     write() {
       this.marc.write();
     },
     importRecord(data) {
-      this.record = data.toString();
+      this.records = data;
+      console.log(data);
     },
   },
   created() {
@@ -63,11 +82,9 @@ export default {
 
 <style lang="stylus">
 @import '~variables'
-  .status
-    margin-top: -24px
-    margin-bottom: 24px
-    z-index: 100
-  .output span
-  .config span
-    font-family: 'Monaco', 'Menlo', 'Consolas', 'Bitstream Vera Sans Mono', monospace
+
+#marc-record-carousel {
+  width: 90%;
+  min-height: 400px;
+}
 </style>
