@@ -1,21 +1,22 @@
 <template>
   <q-page class="flex justify-start items-center column full-width">
     <div class="q-pa-md">
-      <q-card class="q-ma-md" style="width: 500px">
-        <q-card-actions class="bg-positive row justify-between">
+      <q-card class="q-ma-sm" style="width: 800px">
+        <q-card-actions class="bg-positive row">
           <q-btn
             @click.native="read"
             class="bg-white col-3"
             text-color="tertiary"
-            label="Import"
+            label="Open MARC"
             icon="file download"
             flat
           />
+          <div class="col"/>
           <q-btn
             @click.native="write"
             class="bg-white col-3"
             text-color="tertiary"
-            label="Export"
+            label="Export MARC"
             icon="file upload"
             flat
           />
@@ -23,22 +24,38 @@
       </q-card>
     </div>
     <div class="row flex flex-center full-width q-pa-sm">
-      <q-carousel
-        id="marc-record-carousel"
-        class="text-white"
-        :arrows=true
-        :quick-nav=true
-      >
-        <q-carousel-slide
-          v-bind:key="record._leader._baseAddressOfData"
-          v-for="record in records"
-        >
-          <marc-record
-            :record="record"
-            :length="Object.keys(record).length"
-          />
-        </q-carousel-slide>
-      </q-carousel>
+      <span class="current-record-before bg-light text-black q-pa-sm">
+        Record #
+        </span>
+      <q-input
+        v-model="currentRecord"
+        class="current-record bg-white col-1"
+        type="number"
+        :decimals=0
+        :before="[
+          {
+            icon: 'navigate before',
+            handler: this.prev,
+          }
+        ]"
+        :after="[
+          {
+            icon: 'navigate next',
+            handler: this.next,
+          }
+        ]"
+
+      />
+      <span class="current-record-after bg-light text-black q-pa-sm">
+        of {{ Object.keys(records).length }}
+      </span>
+    </div>
+    <div class="row flex flex-center full-width q-pa-sm">
+        <marc-record
+          class="marc-record"
+          :record="records[index]"
+          :length="Object.keys(records).length - 1"
+        />
     </div>
   </q-page>
 </template>
@@ -53,14 +70,33 @@ export default {
       records: '',
       marcDisplay: '',
       marc: this.$marc,
+      page: 0,
+      currentRecord: 1,
     };
+  },
+  computed: {
+    index() {
+      return this.currentRecord - 1;
+    },
   },
   components: {
     marcRecord,
   },
-  computed: {
-  },
   watch: {
+    currentRecord: function (n, o) {
+      console.log(n);
+      if (!Number.isInteger(n)) {
+        this.currentRecord = o;
+        return;
+      }
+      if (n < 1) {
+        this.currentRecord = 1;
+        return;
+      }
+      if (n > Object.keys(this.records).length) {
+        this.currentRecord = Object.keys(this.records).length;
+      }
+    },
   },
   methods: {
     read() {
@@ -73,6 +109,16 @@ export default {
       this.records = data;
       console.log(data);
     },
+    prev() {
+      if (this.currentRecord > 1) {
+        this.currentRecord = this.currentRecord - 1;
+      }
+    },
+    next() {
+      if (this.currentRecord < Object.keys(this.records).length) {
+        this.currentRecord = this.currentRecord + 1;
+      }
+    },
   },
   created() {
 
@@ -83,8 +129,17 @@ export default {
 <style lang="stylus">
 @import '~variables'
 
-#marc-record-carousel {
-  width: 90%;
+.marc-record {
+  width: 100%;
   min-height: 400px;
+}
+.current-record input {
+  text-align: center;
+}
+.current-record-before {
+  border-radius: 3px 0 0 3px;
+}
+.current-record-after {
+  border-radius: 0 3px 3px 0;
 }
 </style>
