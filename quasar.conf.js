@@ -16,10 +16,10 @@ module.exports = function (ctx) {
     ],
     extras: [
       ctx.theme.mat ? 'roboto-font' : null,
-      'material-icons'
+      'material-icons',
+      'fontawesome',
       // 'ionicons',
       // 'mdi',
-      // 'fontawesome'
     ],
     supportIE: true,
     vendor: {

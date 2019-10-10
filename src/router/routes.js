@@ -25,6 +25,14 @@ export default [
   },
 
   {
+    path: '/first-wrangler',
+    component: () => import('layouts/default'),
+    children: [
+      { path: '', component: () => import('pages/wrangler-first') },
+    ],
+  },
+
+  {
     path: '/nyt-wrangler',
     component: () => import('layouts/default'),
     children: [

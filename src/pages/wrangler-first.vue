@@ -99,12 +99,6 @@
           </q-td>
         </q-tr>
       </q-table>
-          <q-btn
-            flat text-color="tertiary"
-            class="bg-positive col-2 q-ml-sm"
-            @click.native="exportFirst()">
-            Export First Titles
-          </q-btn>
     </div>
     <q-modal column v-model="detailsOpen">
       <h4 row class="q-ma-sm">{{ details.title }}</h4>
@@ -221,10 +215,6 @@ export default {
       types: {
         1: {
           name: 'Book',
-          enable: true,
-        },
-        27: {
-          name: 'LPT',
           enable: true,
         },
         33: {
@@ -359,10 +349,6 @@ export default {
     // Dump output to log
     log(r) {
       console.log(r);
-    },
-    exportFirst() {
-      this.log(this.found);
-      this.log(this.store);
     },
     // Shows a modal of the results for the selected row
     showModal(row) {
@@ -619,7 +605,6 @@ export default {
         let frank = false;
         // For each ToM of the title
         Object.keys(this.found[index].titles[t]).forEach((i) => {
-          console.log(i);
           // If title has at least 1 item of this ToM, update count for ToM
           if (this.types[i].enable === true) {
             if (this.found[index].titles[t][i] > 0) {

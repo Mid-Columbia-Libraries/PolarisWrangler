@@ -13,6 +13,12 @@ export default ({ Vue }) => {
       desc: 'Find series missing items.',
       path: 'series-wrangler',
     },
+    FirstWrangler: {
+      name: 'First in Series Wrangler',
+      icon: 'more',
+      desc: 'Generate list of first titles in series.',
+      path: 'first-wrangler',
+    },
     NytWrangler: {
       name: 'NYT Wrangler',
       icon: 'star',
