@@ -373,6 +373,7 @@ export default {
           title: r,
           author: row.author,
           1: row.titles[r][1],
+          27: row.titles[r][27],
           33: row.titles[r][33],
           36: row.titles[r][36],
           41: row.titles[r][41],
@@ -417,6 +418,12 @@ export default {
 
     // Signal that process completed successfully
     finish() {
+      this.log('Store:');
+      this.log(this.store);
+      this.log('Found:');
+      this.log(this.found);
+      this.log('Done:');
+      this.log(this.done);
       this.status = false;
       this.token = '';
       this.statusPct = 0;
@@ -563,7 +570,7 @@ export default {
             if (this.method === 'hybrid') {
               const itemTi = this.clean(title.main_title);
               // Generate query to send to pac
-              const query = `search/bibs/boolean?q=((AU=${au}) AND (TI=${itemTi})) OR ISBN=${title.primary_isbn}&bibsperpage=1000`;
+              const query = `search/bibs/boolean?q=((AU="${au}") AND (TI="${itemTi}")) OR ISBN=${title.primary_isbn}&bibsperpage=1000`;
               // Dispatch verification to PAC
               this.dispatchCount += 1;
               this.api.call(query)
@@ -619,17 +626,19 @@ export default {
         let frank = false;
         // For each ToM of the title
         Object.keys(this.found[index].titles[t]).forEach((i) => {
-          console.log(i);
           // If title has at least 1 item of this ToM, update count for ToM
-          if (this.types[i].enable === true) {
+          // If not in specified types, add to unknown list
+          if (typeof (this.types[i]) === 'undefined') {
+            this.found[index][999] += 1;
+          }
+          else if (this.types[i].enable === true) {
             if (this.found[index].titles[t][i] > 0) {
               this.found[index][i] += 1;
               frank = true;
             }
           }
-          // If not in specified types, add to unknown list
-          if (typeof (this.types[i]) === 'undefined') this.found[index][999] += 1;
         });
+        // If an object of this type was found, increment frankenstein count
         if (frank) this.found[index].f += 1;
       });
       Object.keys(this.types).forEach((k) => {
