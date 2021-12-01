@@ -4,6 +4,12 @@ Polaris Wrangler is an Electron based application for Windows that helps Polaris
 
 It also optionally uses the New York Times bestseller's list APIs and the Novelist API.
 
+## NYT Wrangler
+
+The NYT Wrangler uses the New York Times Bestseller's APIs to help you identify items that are currently popular but may be missing or under-represented in the collection. You can select from any of the several dozen NYT Bestseller's lists, or a combination of them, and get a visual display of the rank, number of weeks on the list, and the holding counts in the collection for Print, Large Type, eBook, eAudio book, and CD.
+
+![NYT Wrangler Example](/docs/NYT-Wrangler.png?raw=true "New York Times Bestsellers Wrangler Tool")
+
 ## Series Wrangler
 
 The Series Wrangler tool can be used to locate series that the libraries has in the collection, but that are missing items.
@@ -13,12 +19,6 @@ It is smart enough to understand that a series can be split across different mat
 In addition, you can deep dive into the data for each series, taking a look at your exact holding count of each material type and title.
 
 ![Series Wrangler Example](/docs/Series-Wrangler.png?raw=true "Incomplete Series Wrangler Tool")
-
-## NYT Wrangler
-
-The NYT Wrangler uses the New York Times Bestseller's APIs to help you identify items that are currently popular but may be missing or under-represented in the collection. You can select from any of the several dozen NYT Bestseller's lists, or a combination of them, and get a visual display of the rank, number of weeks on the list, and the holding counts in the collection for Print, Large Type, eBook, eAudio book, and CD.
-
-![NYT Wrangler Example](/docs/NYT-Wrangler.png?raw=true "New York Times Bestsellers Wrangler Tool")
 
 ## API Wrangler
 
